@@ -1,14 +1,39 @@
 from dataclasses import fields
-from pyexpat import model
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
+import email
+from django.contrib.auth.models import User
+from  rest_framework import serializers, validators
 from .models import Books
 
-class UserSerializer(serializers.ModelSerializer):
-
+class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
-        model = get_user_model()
-        fields = "__all__"
+        model=User
+        fields=('username', 'password','email','is_staff')
+
+        extra_kwargs={
+            'password':{'write_only':True},
+            'email':{
+                'required':True,
+                'allow_blank':False,
+                'validators':[validators.UniqueValidator(
+                    User.objects.all(),'A user with that email already exists'
+                )
+                ]
+            }
+        }
+    def create(self, validated_data):
+        username=validated_data.get('username')
+        password=validated_data.get('password')
+        email=validated_data.get('email')
+        is_staff=validated_data.get('is_staff')
+
+        user=User.objects.create(
+            username=username,
+            password=password,
+            email=email,
+            is_staff=is_staff,
+        )
+        return user
+
 
 class BookSerializer(serializers.ModelSerializer):
     class Meta:

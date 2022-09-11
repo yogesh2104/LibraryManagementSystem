@@ -1,53 +1,66 @@
-
-# Create your views here.
-from rest_framework import viewsets,serializers
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from django.contrib.auth.models import User
-from django.contrib.auth import get_user_model
-from .serializers import UserSerializer
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.authtoken.serializers import AuthTokenSerializer
+from knox.auth import AuthToken
+from .serializers import RegisterSerializer
 from rest_framework.decorators import api_view,permission_classes
 from .serializers import BookSerializer
 from .models import Books
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 
-class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
-    class Meta:
-        model= User
-        fields=['id','username','email','password','is_staff']
+# Create your views here.
 
 
-        def create(self,validated_data):
-            user=User.objects.create(
-                username=validated_data["username"],
-                email=validated_data["email"]
-                )
-            user.set_password(validated_data["password"])
-            user.save()
-            return user
+@api_view(['POST'])
+def login_api(request):
+    serializer=AuthTokenSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    user=serializer.validated_data['user']
+    _, token= AuthToken.objects.create(user)
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset=User.objects.all()
-    serializer_class=UserSerializer
-
-
-class UserViewViewSet(viewsets.ModelViewSet):
-    """
-    UserModel View.
-    """
-    permission_classes = (IsAuthenticated,)
-    serializer_class = UserSerializer
-    queryset = get_user_model().objects.all()
-
+    return Response({
+        'user_info':{
+            'id':user.id,
+            'username':user.username,
+            'email':user.email
+        },
+        'token':token
+    })
 
 @api_view(['GET'])
-def getUserList(request, username):
-    user=User.objects.get(username=username)
-    serializer=UserSerializer(user, many=False)
-    return Response(serializer.data)
+def get_user_data(request):
+    user=request.user
+    if user.is_authenticated:
+        return Response({
+            'user_info':{
+                'id':user.id,
+                'username':user.username,
+                'email':user.email
+            },
+        })
+    return Response({
+        'error':'User not authorized'
+    },status=400)
 
 
+
+@api_view(['POST'])
+def register_api(request):
+    serializer=RegisterSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    user=serializer.save()
+    _, token=AuthToken.objects.create(user)
+
+    return Response({
+        'user_info':{
+            'id':user.id,
+            'username':user.username,
+            'email':user.email
+        },
+        'token':token
+    })
 
 @api_view(['GET'])
 @permission_classes((IsAuthenticated, ))
@@ -59,7 +72,6 @@ def apioverview(request):
         'Add Book':'/book-add/',
         'Update':'/book-update/<int:id>',
         'Dalete':'/book-detete/<int:id>',
-        'Documantation':'/doc'
     }
     return Response(api_url)
 
