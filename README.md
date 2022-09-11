@@ -35,16 +35,16 @@ python manage.py runserver
 
 ## Api Endpoint
 ```
-        'Auth':'/api-auth/',
-        'Token':'/api/token/',
-        'Token Refresh':'api/token/refresh/',
-        'User List':'user-list/<str:username>',
+        'Login':'login/',
+        'User Data':'user/',
+        'register':'register/',
+        'logout':'logout/',
+        'Documantation':'doc/',
         'List':'/book-list',
         'Details View':'/book-details/<int:id>',
         'Add Book':'/book-add/',
         'Update':'/book-update/<int:id>',
         'Dalete':'/book-detete/<int:id>',
-        'Documantation':''
 ```
 
 ## For Admin Panel Create superuser
